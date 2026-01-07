@@ -11,7 +11,7 @@ Visual customizado para Power BI que exibe imagens em formato de carrossel ou gr
 - **Grid configurável** com linhas/colunas por página e paginação
 - **Cross-filter via ícone** dedicado (não interfere com navegação)
 - **Respeita filtros** e segmentações da página
-- **Suporte a imagens Base64** (data URI) ou URLs públicas
+- **Suporte a imagens**: URLs públicas ou data URIs (Base64)
 
 ## 📋 Requisitos
 
@@ -50,7 +50,7 @@ npm run package
 
 ### Configurar campos
 
-1. **URL da Imagem**: coluna com URL pública ou string Base64 (data URI)
+1. **URL da Imagem**: coluna com URL pública ou data URI (imagem em Base64)
 2. **Título**: campo textual para título principal
 3. **Subtítulo 1**: primeiro subtítulo (opcional)
 4. **Subtítulo 2**: segundo subtítulo (opcional)
@@ -79,24 +79,7 @@ npm run package
 - `Ctrl`+clique para multi-seleção
 - Clique no fundo do visual para limpar filtros
 
-## 📦 Gerando imagens Base64
-
-Se você tem URLs de um site fechado (ex.: Paytrack) e precisa converter para Base64 dentro do limite do Power BI:
-
-```bash
-cd ../Imagens_base64
-pip install -r requirements.txt
-
-# Com autenticação
-python convert_images_paytrack.py --input "imagens paytrack.xlsx" --output "saida.xlsx" --url-col url_imagem --cookie "JSESSIONID=..." --max-chars 32766
-
-# Ou com token Bearer
-python convert_images_paytrack.py --input "imagens paytrack.xlsx" --output "saida.xlsx" --url-col url_imagem --bearer-token "SEU_TOKEN" --max-chars 32766
-```
-
-Consulte o [README do conversor](../Imagens_base64/README.md) para mais opções.
-
-## 🛠️ Desenvolvimento
+## ️ Desenvolvimento
 
 ### Estrutura do projeto
 
