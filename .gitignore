@@ -1,0 +1,33 @@
+# Build outputs
+dist/
+.tmp/
+*.pbiviz
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Certificates (sensitive)
+*.pfx
+*.pem
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Webpack reports
+webpack.statistics.*.html
+
+# Temp files
+~$*
+*.tmp

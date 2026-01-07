@@ -1,0 +1,54 @@
+{
+  "dataRoles": [
+    { "displayName": "URL da Imagem", "name": "imageUrl", "kind": "Grouping" },
+    { "displayName": "Título", "name": "title", "kind": "Grouping" },
+    { "displayName": "Subtítulo 1", "name": "sub1", "kind": "Grouping" },
+    { "displayName": "Subtítulo 2", "name": "sub2", "kind": "Grouping" }
+  ],
+  "objects": {
+    "config": {
+      "displayName": "Layout e Estilo",
+      "properties": {
+        "viewMode": {
+          "displayName": "Modo de Exibição",
+          "type": { "enumeration": [
+            { "displayName": "Carrossel", "value": "carousel" },
+            { "displayName": "Grid", "value": "grid" }
+          ]}
+        },
+        "textPosition": {
+          "displayName": "Posição do Texto",
+          "type": { "enumeration": [
+            { "displayName": "Topo", "value": "top" },
+            { "displayName": "Base", "value": "bottom" },
+            { "displayName": "Esquerda", "value": "left" },
+            { "displayName": "Direita", "value": "right" },
+            { "displayName": "Sobreposto (Topo)", "value": "overlayTop" },
+            { "displayName": "Sobreposto (Base)", "value": "overlayBottom" },
+            { "displayName": "Oculto", "value": "hidden" }
+          ]}
+        },
+        "gridRows": { "displayName": "Grid: linhas por página", "type": { "integer": true } },
+        "gridCols": { "displayName": "Grid: colunas por página", "type": { "integer": true } },
+        "bgColor": { "displayName": "Cor de Fundo", "type": { "fill": { "solid": { "color": true } } } },
+        "txtColor": { "displayName": "Cor do Texto", "type": { "fill": { "solid": { "color": true } } } },
+        "fontSize": { "displayName": "Tamanho da Fonte", "type": { "integer": true } }
+      }
+    }
+  },
+  "dataViewMappings": [
+    {
+      "table": {
+        "rows": {
+          "select": [
+            { "for": { "in": "imageUrl" } },
+            { "for": { "in": "title" } },
+            { "for": { "in": "sub1" } },
+            { "for": { "in": "sub2" } }
+          ]
+        }
+      }
+    }
+  ],
+  "privileges": []
+}
