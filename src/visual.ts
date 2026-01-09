@@ -19,6 +19,137 @@ export class Visual implements IVisual {
     private currentPage: number = 0;
     private userMode: string | null = null; // Override local do modo (null = usa settings)
 
+    private parseDateToMs(value: unknown): number | null {
+        if (value === null || value === undefined) return null;
+
+        if (value instanceof Date) {
+            const t = value.getTime();
+            return Number.isFinite(t) ? t : null;
+        }
+
+        if (typeof value === "number") {
+            return this.parseNumberDateToMs(value);
+        }
+
+        return this.parseStringDateToMs(String(value));
+    }
+
+    private parseNumberDateToMs(n: number): number | null {
+        if (!Number.isFinite(n)) return null;
+
+        // Epoch em ms
+        if (n > 1e12) return n;
+
+        // Epoch em segundos
+        if (n > 1e9) return n * 1000;
+
+        // Serial do Excel (dias desde 1899-12-30) — comum em alguns fluxos
+        if (n > 20000 && n < 90000) {
+            const excelEpochUtcMs = Date.UTC(1899, 11, 30);
+            return excelEpochUtcMs + n * 86400000;
+        }
+
+        return null;
+    }
+
+    private parseStringDateToMs(raw: string): number | null {
+        const s = (raw ?? "").trim();
+        if (!s) return null;
+
+        // dd/MM/yyyy (pt-BR) + opcional hora
+        const dmy = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+        if (dmy) {
+            const day = Number(dmy[1]);
+            const month = Number(dmy[2]);
+            let year = Number(dmy[3]);
+            const hour = dmy[4] ? Number(dmy[4]) : 0;
+            const minute = dmy[5] ? Number(dmy[5]) : 0;
+            const second = dmy[6] ? Number(dmy[6]) : 0;
+
+            if (year < 100) year += year >= 70 ? 1900 : 2000;
+            const t = Date.UTC(year, month - 1, day, hour, minute, second);
+            return Number.isFinite(t) ? t : null;
+        }
+
+        // yyyy-MM-dd (ISO-like) + opcional hora
+        const ymd = s.match(/^(\d{4})[\/.-](\d{1,2})[\/.-](\d{1,2})(?:[T\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+        if (ymd) {
+            const year = Number(ymd[1]);
+            const month = Number(ymd[2]);
+            const day = Number(ymd[3]);
+            const hour = ymd[4] ? Number(ymd[4]) : 0;
+            const minute = ymd[5] ? Number(ymd[5]) : 0;
+            const second = ymd[6] ? Number(ymd[6]) : 0;
+
+            const t = Date.UTC(year, month - 1, day, hour, minute, second);
+            return Number.isFinite(t) ? t : null;
+        }
+
+        // Fallback: ISO completo e outros formatos que o JS entende
+        const parsed = Date.parse(s);
+        return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    private formatDateDdMmYyyy(value: unknown): string {
+        const ms = this.parseDateToMs(value);
+        if (ms === null) return "";
+        const d = new Date(ms);
+        const dd = String(d.getUTCDate()).padStart(2, "0");
+        const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+        const yyyy = String(d.getUTCFullYear());
+        return `${dd}-${mm}-${yyyy}`;
+    }
+
+    private sortByDateAsc<T extends { date?: unknown; sub1?: unknown; sub2?: unknown; title?: unknown }>(items: T[]): T[] {
+        if (!Array.isArray(items) || items.length < 2) return items;
+
+        const decorated = items.map((item, index) => ({ item, index }));
+
+        const hasExplicitDate = decorated.some((d) => {
+            const v = (d.item as any).date;
+            return v !== null && v !== undefined && String(v).trim().length > 0;
+        });
+
+        const candidateGetters: Array<(it: T) => unknown> = hasExplicitDate
+            ? [(it) => (it as any).date]
+            : [(it) => (it as any).sub1, (it) => (it as any).sub2, (it) => (it as any).title];
+
+        let chosenGetter: ((it: T) => unknown) | null = null;
+        if (hasExplicitDate) {
+            chosenGetter = candidateGetters[0];
+        } else {
+            for (const getter of candidateGetters) {
+                const validCount = decorated.reduce((acc, d) => acc + (this.parseDateToMs(getter(d.item)) !== null ? 1 : 0), 0);
+                const threshold = Math.max(2, Math.ceil(items.length * 0.8));
+                if (validCount >= threshold) {
+                    chosenGetter = getter;
+                    break;
+                }
+            }
+        }
+
+        if (!chosenGetter) return items;
+
+        const toKey = (it: T): number | null => this.parseDateToMs(chosenGetter!(it));
+
+        decorated.sort((a, b) => {
+            const ta = toKey(a.item);
+            const tb = toKey(b.item);
+            const aValid = ta !== null;
+            const bValid = tb !== null;
+
+            if (aValid && bValid) {
+                if (ta! !== tb!) return ta! - tb!;
+                return a.index - b.index;
+            }
+            if (aValid && !bValid) return -1;
+            if (!aValid && bValid) return 1;
+            return a.index - b.index;
+        });
+
+        return decorated.map((d) => d.item);
+    }
+
     constructor(options: VisualConstructorOptions) {
         this.target = options.element;
         this.host = options.host;
@@ -58,8 +189,8 @@ export class Visual implements IVisual {
         const renderSettings = { ...settings, mode: effectiveMode };
 
         const data = this.readRows(dataView);
-
-        this.render(data, renderSettings);
+        const sorted = this.sortByDateAsc(data);
+        this.render(sorted, renderSettings);
     }
 
     private clearElement(el: HTMLElement): void {
@@ -73,7 +204,7 @@ export class Visual implements IVisual {
         return String(anyId ?? "");
     }
 
-    private readRows(dataView: powerbi.DataView): Array<{ url: string; title: string; sub1: string; sub2: string; selectionId?: powerbi.extensibility.ISelectionId }>
+    private readRows(dataView: powerbi.DataView): Array<{ url: string; title: string; sub1: string; sub2: string; date?: unknown; selectionId?: powerbi.extensibility.ISelectionId }>
     {
         // Prefer table mapping (fixa o problema de texto por linha).
         const table = (dataView as any).table as powerbi.DataViewTable | undefined;
@@ -82,7 +213,7 @@ export class Visual implements IVisual {
                 url: table.columns.findIndex((c) => (c.roles as any)?.imageUrl),
                 title: table.columns.findIndex((c) => (c.roles as any)?.title),
                 sub1: table.columns.findIndex((c) => (c.roles as any)?.sub1),
-                sub2: table.columns.findIndex((c) => (c.roles as any)?.sub2)
+                date: table.columns.findIndex((c) => (c.roles as any)?.date)
             };
 
             return table.rows
@@ -96,7 +227,9 @@ export class Visual implements IVisual {
                         url: String(colIndex.url >= 0 ? (r[colIndex.url] ?? "") : ""),
                         title: String(colIndex.title >= 0 ? (r[colIndex.title] ?? "") : ""),
                         sub1: String(colIndex.sub1 >= 0 ? (r[colIndex.sub1] ?? "") : ""),
-                        sub2: String(colIndex.sub2 >= 0 ? (r[colIndex.sub2] ?? "") : ""),
+                        // Mantém o layout existente (Subtítulo 1 | Subtítulo 2), mas agora Subtítulo 2 é a Data
+                        sub2: colIndex.date >= 0 ? this.formatDateDdMmYyyy(r[colIndex.date]) : "",
+                        date: colIndex.date >= 0 ? (r[colIndex.date] ?? null) : null,
                         selectionId
                     };
                 })
@@ -109,14 +242,15 @@ export class Visual implements IVisual {
         const values = cat?.values;
         const titles = values?.find((v) => (v.source.roles as any)?.title)?.values || [];
         const s1 = values?.find((v) => (v.source.roles as any)?.sub1)?.values || [];
-        const s2 = values?.find((v) => (v.source.roles as any)?.sub2)?.values || [];
+        const dates = values?.find((v) => (v.source.roles as any)?.date)?.values || [];
 
         return imageCat
             .map((v, i) => ({
                 url: String(v ?? ""),
                 title: String(titles[i] ?? ""),
                 sub1: String(s1[i] ?? ""),
-                sub2: String(s2[i] ?? "")
+                sub2: this.formatDateDdMmYyyy(dates[i]),
+                date: dates[i] ?? null
             }))
             .filter((d) => d.url.trim().length > 0);
     }

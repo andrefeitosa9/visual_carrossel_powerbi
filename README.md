@@ -53,7 +53,7 @@ npm run package
 1. **URL da Imagem**: coluna com URL pública ou data URI (imagem em Base64)
 2. **Título**: campo textual para título principal
 3. **Subtítulo 1**: primeiro subtítulo (opcional)
-4. **Subtítulo 2**: segundo subtítulo (opcional)
+4. **Data (para ordenar)**: campo de data/hora usado para ordenar as imagens do menor para o maior (opcional)
 
 ### Formatação
 

@@ -3,7 +3,7 @@
     { "displayName": "URL da Imagem", "name": "imageUrl", "kind": "Grouping" },
     { "displayName": "Título", "name": "title", "kind": "Grouping" },
     { "displayName": "Subtítulo 1", "name": "sub1", "kind": "Grouping" },
-    { "displayName": "Subtítulo 2", "name": "sub2", "kind": "Grouping" }
+    { "displayName": "Data (para ordenar)", "name": "date", "kind": "Grouping" }
   ],
   "objects": {
     "config": {
@@ -44,7 +44,7 @@
             { "for": { "in": "imageUrl" } },
             { "for": { "in": "title" } },
             { "for": { "in": "sub1" } },
-            { "for": { "in": "sub2" } }
+            { "for": { "in": "date" } }
           ]
         }
       }
