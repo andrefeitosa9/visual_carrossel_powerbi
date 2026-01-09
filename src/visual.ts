@@ -100,7 +100,7 @@ export class Visual implements IVisual {
         return `${dd}-${mm}-${yyyy}`;
     }
 
-    private sortByDateAsc<T extends { date?: unknown; sub1?: unknown; sub2?: unknown; title?: unknown }>(items: T[]): T[] {
+    private sortByDateDesc<T extends { date?: unknown; sub1?: unknown; sub2?: unknown; title?: unknown }>(items: T[]): T[] {
         if (!Array.isArray(items) || items.length < 2) return items;
 
         const decorated = items.map((item, index) => ({ item, index }));
@@ -139,7 +139,8 @@ export class Visual implements IVisual {
             const bValid = tb !== null;
 
             if (aValid && bValid) {
-                if (ta! !== tb!) return ta! - tb!;
+                // Mais recente primeiro
+                if (ta! !== tb!) return tb! - ta!;
                 return a.index - b.index;
             }
             if (aValid && !bValid) return -1;
@@ -189,7 +190,7 @@ export class Visual implements IVisual {
         const renderSettings = { ...settings, mode: effectiveMode };
 
         const data = this.readRows(dataView);
-        const sorted = this.sortByDateAsc(data);
+        const sorted = this.sortByDateDesc(data);
         this.render(sorted, renderSettings);
     }
 
